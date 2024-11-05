@@ -147,7 +147,7 @@ def nearest_point_in_koridor(point, koridor_polygon, alpha, variation=0):
         return nearest_point.y + delta_lat, nearest_point.x + delta_lon
 
 # Load corridor from KML file
-koridor_polygon = load_koridor_from_kml('coridorslim.kml')
+koridor_polygon = load_koridor_from_kml('coridorslimbgt.kml')
 
 koridor_cable_zone = load_koridor_from_kml('cable_side.kml')
 
@@ -338,8 +338,48 @@ for csv_file in csv_files:
     print(latitude_draw)
     print("-----------")
     print(longitude_draw)
+    
+    
+    
+    #-------------------------PERFECT LINE------------------------------------
+    latitudes_draw_perfect_buffer = []
+    longitudes_draw_perfect_buffer = []
+    
+    for i in range(len(latitude_draw) - 1):
+        latitude_buffer_perfect = np.linspace(latitude_draw[i], latitude_draw[i + 1], 3)  
+        longitude_buffer_perfect = np.linspace(longitude_draw[i], longitude_draw[i + 1], 3)
+        
+        # Extend the memory arrays with the new buffer points
+        latitudes_draw_perfect_buffer.extend(latitude_buffer_perfect)
+        longitudes_draw_perfect_buffer.extend(longitude_buffer_perfect)
 
-
+    latitude_perfect = []
+    longitude_perfect = []
+    
+    
+    for lat, lon in zip(latitudes_draw_perfect_buffer, longitudes_draw_perfect_buffer):
+        is_within, point = is_within_koridor(lat, lon, koridor_polygon)
+        
+        if is_within:
+            #print(f"Titik ({lat}, {lon}) berada di dalam koridor.")
+            # Tambahkan ke list fixed
+            latitude_perfect.append(lat)
+            longitude_perfect.append(lon)
+            
+        else:
+            nearest_point = nearest_point_on_koridor(point, koridor_polygon)
+            #print(f"Titik ({lat}, {lon}) berada di luar koridor. Titik terdekat di koridor: {nearest_point.y}, {nearest_point.x}")
+            # Tambahkan titik terdekat ke list fixed
+            nearest_lat, nearest_lon = nearest_point_in_koridor(point, koridor_polygon, alpha)
+            #latitude_fixed.append(lat)
+            #longitude_fixed.append(lon)
+            latitude_perfect.append(nearest_lat)
+            longitude_perfect.append(nearest_lon)
+    
+    print("++++++++++++++")
+    print(latitude_perfect)
+    print("-----------")
+    print(longitude_perfect)
 
     # Menyimpan hasil ke dalam KML
     kml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -369,7 +409,7 @@ for csv_file in csv_files:
         kml_content += '    </Placemark>\n'
         
         
-    for idx, (lat, lon) in enumerate(zip(latitude_draw, longitude_draw), start=1):
+    for idx, (lat, lon) in enumerate(zip(latitude_perfect, longitude_perfect), start=1):
         kml_content += '    <Placemark>\n'
         kml_content += f'      <name>Point {idx}</name>\n'
         kml_content += '      <Point>\n'
@@ -393,7 +433,7 @@ for csv_file in csv_files:
     kml_content += '      </Style>\n'
     kml_content += '      <LineString>\n'
     kml_content += '        <coordinates>\n'
-    for lat, lon in zip(latitude_draw, longitude_draw):
+    for lat, lon in zip(latitude_perfect, longitude_perfect):
         kml_content += f'          {lon},{lat},0\n'
     kml_content += '        </coordinates>\n'
     kml_content += '      </LineString>\n'
